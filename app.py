@@ -6,12 +6,17 @@ import json
 app = Flask(__name__)
 
 AGENT_ZERO_A2A_URL = os.getenv('AGENT_ZERO_A2A_URL')
+AGENT_ZERO_API_KEY = os.getenv('A0_API_KEY') # New: Get Agent Zero API Key
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if not AGENT_ZERO_A2A_URL:
         print("Error: AGENT_ZERO_A2A_URL environment variable not set.")
         return jsonify({"status": "error", "message": "Agent Zero A2A URL not configured"}), 500
+    
+    if not AGENT_ZERO_API_KEY:
+        print("Error: A0_API_KEY environment variable not set.")
+        return jsonify({"status": "error", "message": "Agent Zero API Key not configured"}), 500
 
     try:
         # Get the incoming JSON payload from Evolution API
@@ -27,8 +32,14 @@ def webhook():
             "user_message": json.dumps(whatsapp_payload)
         }
 
-        # Send to Agent Zero's A2A endpoint
-        agent_zero_response = requests.post(AGENT_ZERO_A2A_URL, json=agent_zero_message)
+        # New: Add Authorization header with Agent Zero API Key
+        headers = {
+            "Authorization": f"Bearer {AGENT_ZERO_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        # Send to Agent Zero's A2A endpoint with authentication
+        agent_zero_response = requests.post(AGENT_ZERO_A2A_URL, json=agent_zero_message, headers=headers)
         agent_zero_response.raise_for_status() # Raise an exception for HTTP errors
 
         print(f"Forwarded to Agent Zero. Response: {agent_zero_response.text}")
